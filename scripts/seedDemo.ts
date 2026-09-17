@@ -125,6 +125,7 @@ export async function seedDemoMasters(outputPath = DEFAULT_OUTPUT) {
     enableInventory: true,
     enableInvoiceReturns: true,
     enableDiscounting: true,
+    enablePartialPayment: true,
   });
   await fyo.singles.InventorySettings?.setAndSync({
     defaultLocation: 'المخزن الرئيسي',

@@ -188,7 +188,7 @@ export default defineComponent({
       await this.doc.set('email', 'lin@lthings.com');
       await this.doc.set('fullname', 'Lin Slovenly');
       await this.doc.set('bankName', 'Max Finance');
-      await this.doc.set('country', 'India');
+      await this.doc.set('country', 'Egypt');
     },
     async onValueChange(field: Field, value: DocValue) {
       if (!this.hasDoc) {

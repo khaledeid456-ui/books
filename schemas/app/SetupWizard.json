@@ -37,6 +37,7 @@
       "fieldname": "country",
       "label": "Country",
       "fieldtype": "AutoComplete",
+      "default": "Egypt",
       "placeholder": "Select Country",
       "section": "Locale",
       "required": true
@@ -45,6 +46,7 @@
       "fieldname": "currency",
       "label": "Currency",
       "fieldtype": "AutoComplete",
+      "default": "EGP",
       "placeholder": "Currency",
       "section": "Locale",
       "required": true

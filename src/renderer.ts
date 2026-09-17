@@ -1,5 +1,6 @@
 import { CUSTOM_EVENTS } from 'utils/messages';
 import { UnexpectedLogObject } from 'utils/types';
+import { DEFAULT_LANGUAGE } from 'fyo/utils/consts';
 import { App as VueApp, createApp } from 'vue';
 import App from './App.vue';
 import Badge from './components/Badge.vue';
@@ -14,11 +15,10 @@ import { setLanguageMap } from './utils/language';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
-  const language = fyo.config.get('language') as string;
-  if (language) {
-    await setLanguageMap(language);
-  }
-  fyo.store.language = language || 'English';
+  const language =
+    (fyo.config.get('language') as string | undefined) ?? DEFAULT_LANGUAGE;
+  await setLanguageMap(language, true);
+  fyo.store.language = language;
 
   registerIpcRendererListeners();
   const { isDevelopment, platform, version } = await ipc.getEnv();

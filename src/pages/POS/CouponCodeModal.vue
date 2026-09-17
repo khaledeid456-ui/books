@@ -41,7 +41,7 @@
               />
             </div>
           </div>
-          <div class="absolute right-3">
+          <div class="absolute end-3">
             <feather-icon
               name="trash"
               class="w-4 text-xl text-red-500 cursor-pointer"

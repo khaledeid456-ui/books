@@ -20,7 +20,7 @@
     />
     <p
       v-if="row.isFreeItem"
-      class="absolute flex top-0 font-medium text-xs ml-2 text-green-800"
+      class="absolute flex top-0 font-medium text-xs ms-2 text-green-800"
       style="font-size: 0.6rem"
     >
       {{ row.pricingRule }}
@@ -39,7 +39,7 @@
       :value="row.quantity"
       :read-only="true"
     />
-    <div class="flex flex-col ml-1">
+    <div class="flex flex-col ms-1">
       <feather-icon
         name="chevron-up"
         class="
@@ -68,7 +68,7 @@
   </div>
 
   <Link
-    class="ml-5"
+    class="ms-5"
     :df="{
       fieldname: 'unit',
       fieldtype: 'Data',
@@ -224,7 +224,7 @@
 
     <div
       v-if="row.links?.item && row.links?.item.hasBatch"
-      class="pl-6 px-4 pt-6 col-span-2"
+      class="ps-6 px-4 pt-6 col-span-2"
     >
       <Link
         :df="{

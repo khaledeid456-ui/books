@@ -70,7 +70,7 @@
                 w-6
                 h-6
                 top-1
-                right-1
+                end-1
                 absolute
                 rounded-full
                 flex

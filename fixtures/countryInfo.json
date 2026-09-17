@@ -648,7 +648,7 @@
     "currency_fraction": "Piastre[F]",
     "currency_fraction_units": 100,
     "currency_name": "Egyptian Pound",
-    "currency_symbol": "£ or ج.م",
+    "currency_symbol": "ج.م",
     "timezones": ["Africa/Cairo"],
     "fiscal_year_start": "07-01",
     "fiscal_year_end": "06-30",

@@ -355,7 +355,7 @@
             @add-item="(item:string) => emitEvent('addItem', item)"
           />
 
-          <div class="flex fixed bottom-0 p-1 ml-3 mb-7 gap-x-3">
+          <div class="flex fixed bottom-0 p-1 ms-3 mb-7 gap-x-3">
             <POSQuickActions
               :sinv-doc="sinvDoc"
               :loyalty-points="loyaltyPoints"

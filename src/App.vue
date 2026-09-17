@@ -10,7 +10,7 @@
       antialiased
     "
     :dir="languageDirection"
-    :language="language"
+    :lang="languageCode"
   >
     <WindowsTitleBar
       v-if="platform === 'Windows'"
@@ -62,7 +62,7 @@ import { connectToDatabase, dbErrorActionSymbols } from './utils/db';
 import { initializeInstance } from './utils/initialization';
 import * as injectionKeys from './utils/injectionKeys';
 import { showDialog, showToast } from './utils/interactive';
-import { setLanguageMap } from './utils/language';
+import { languageCodeMap, setLanguageMap } from './utils/language';
 import { updateConfigFiles } from './utils/misc';
 import { updatePrintTemplates } from './utils/printTemplates';
 import { Search } from './utils/search';
@@ -132,10 +132,19 @@ export default defineComponent({
     language(): string {
       return systemLanguageRef.value;
     },
+    languageCode(): string {
+      return languageCodeMap[this.language] ?? 'en';
+    },
   },
   watch: {
-    language(value: string) {
-      this.languageDirection = getLanguageDirection(value);
+    language: {
+      immediate: true,
+      handler(value: string) {
+        const direction = getLanguageDirection(value);
+        this.languageDirection = direction;
+        document.documentElement.dir = direction;
+        document.documentElement.lang = languageCodeMap[value] ?? 'en';
+      },
     },
   },
   async mounted() {

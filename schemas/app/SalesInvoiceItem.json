@@ -13,6 +13,20 @@
       "fieldname": "pricingRule",
       "fieldtype": "Data",
       "hidden": true
+    },
+    {
+      "fieldname": "serialNumber",
+      "label": "Serial Number",
+      "fieldtype": "Data",
+      "readOnly": true,
+      "hidden": true
+    },
+    {
+      "fieldname": "warrantyEndDate",
+      "label": "Warranty End Date",
+      "fieldtype": "Date",
+      "readOnly": true,
+      "hidden": true
     }
   ]
 }

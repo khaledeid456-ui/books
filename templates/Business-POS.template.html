@@ -28,20 +28,18 @@
 
   <section class="mt-1 flex flex-col justify-between items-center">
     <h4 class="font-semibold text-xl">فاتورة بيع</h4>
+    <p dir="ltr" class="font-bold text-2xl leading-tight tabular-nums">
+      {{ doc.name }}
+    </p>
   </section>
 
-  <div class="w-auto text-xs grid grid-cols-7 grid-rows-3 p-2">
-    <div class="col-span-2 font-bold"><p>رقم الفاتورة</p></div>
+  <div class="w-auto text-xs grid grid-cols-7 grid-rows-2 p-2">
+    <div class="col-span-2 font-bold">العميل</div>
     <div class="col-start-3">:</div>
-    <div dir="ltr" class="col-span-4 col-start-4 tabular-nums">
-      {{ doc.name }}
-    </div>
-    <div class="col-span-2 row-start-2 font-bold">العميل</div>
-    <div class="col-start-3 row-start-2">:</div>
-    <div class="col-span-4 col-start-4 row-start-2">{{ doc.party }}</div>
-    <div class="col-span-2 col-start-1 row-start-3 font-bold">التاريخ</div>
-    <div class="col-span-2 col-start-3 row-start-3">:</div>
-    <div dir="ltr" class="col-span-4 col-start-4 row-start-3 tabular-nums">
+    <div class="col-span-4 col-start-4">{{ doc.party }}</div>
+    <div class="col-span-2 col-start-1 row-start-2 font-bold">التاريخ</div>
+    <div class="col-span-2 col-start-3 row-start-2">:</div>
+    <div dir="ltr" class="col-span-4 col-start-4 row-start-2 tabular-nums">
       {{doc.date}}
     </div>
   </div>
@@ -59,7 +57,7 @@
 
     <!-- Body Rows -->
     <section
-      class="flex py-1 text-gray-900 w-auto"
+      class="flex flex-wrap py-1 text-gray-900 w-auto"
       v-for="(row,index) in doc.items"
       :key="row.name"
     >
@@ -73,6 +71,19 @@
       </div>
       <div dir="ltr" class="w-3/12 text-right py-1 tabular-nums">
         {{ row.amount }}
+      </div>
+      <div
+        v-if="row.serialNumber || row.warrantyEndDate"
+        class="w-full ps-4 pb-1 text-xs"
+      >
+        <p v-if="row.serialNumber">
+          <span class="font-bold">السيريال:</span>
+          <span dir="ltr" class="tabular-nums">{{ row.serialNumber }}</span>
+        </p>
+        <p v-if="row.warrantyEndDate">
+          <span class="font-bold">انتهاء الضمان:</span>
+          <span dir="ltr" class="tabular-nums">{{ row.warrantyEndDate }}</span>
+        </p>
       </div>
     </section>
 

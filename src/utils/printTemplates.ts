@@ -53,6 +53,10 @@ export async function getPrintTemplatePropValues(
   const values: PrintValues = { doc: {}, print: {} };
   values.doc = await getPrintTemplateDocValues(doc);
 
+  if (doc.schema.name === ModelNameEnum.SalesInvoice && doc.name) {
+    await addSerialWarrantyToPrintValues(doc, values.doc);
+  }
+
   if (
     values.doc.entryType === ModelNameEnum.SalesInvoice ||
     values.doc.entryType === ModelNameEnum.PurchaseInvoice
@@ -134,6 +138,41 @@ export async function getPrintTemplatePropValues(
   }
 
   return values;
+}
+
+async function addSerialWarrantyToPrintValues(
+  doc: Doc,
+  printDoc: PrintTemplateData
+): Promise<void> {
+  const serials = (await doc.fyo.db.getAll(ModelNameEnum.SerialNumber, {
+    filters: { salesInvoice: doc.name as string },
+    fields: ['name', 'item', 'warrantyEndDate'],
+  })) as Array<{
+    name: string;
+    item: string;
+    warrantyEndDate?: Date;
+  }>;
+  const printItems = printDoc.items as PrintTemplateData[] | undefined;
+  const items = doc.items as Doc[] | undefined;
+  if (!serials.length || !printItems || !items) {
+    return;
+  }
+
+  for (const [index, item] of items.entries()) {
+    const itemSerials = serials.filter((serial) => serial.item === item.item);
+    if (!itemSerials.length || !printItems[index]) {
+      continue;
+    }
+
+    printItems[index].serialNumber = itemSerials
+      .map((serial) => serial.name)
+      .join(', ');
+    const warrantyDates = itemSerials
+      .map((serial) => serial.warrantyEndDate)
+      .filter(Boolean)
+      .map((date) => doc.fyo.format(date!, 'Date'));
+    printItems[index].warrantyEndDate = warrantyDates.join(', ');
+  }
 }
 async function getPaymentDetails(doc: Doc, paymentId: string[]) {
   const paymentIds = paymentId.sort();

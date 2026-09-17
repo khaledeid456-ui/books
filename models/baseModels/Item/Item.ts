@@ -29,6 +29,7 @@ export class Item extends Doc {
   itemGroup?: string;
   hsnCode?: number;
   hasSerialNumber?: boolean;
+  warrantyPeriodMonths?: number;
   uomConversions: UOMConversionItem[] = [];
 
   formulas: FormulaMap = {
@@ -177,6 +178,7 @@ export class Item extends Doc {
       !(
         this.fyo.singles.InventorySettings?.enableSerialNumber && this.trackItem
       ),
+    warrantyPeriodMonths: () => !this.hasSerialNumber,
     uomConversions: () =>
       !this.fyo.singles.InventorySettings?.enableUomConversions,
     itemGroup: () => !this.fyo.singles.AccountingSettings?.enableitemGroup,

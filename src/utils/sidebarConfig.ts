@@ -178,6 +178,11 @@ function getCompleteSidebar(): SidebarConfig {
           schemaName: 'SalesInvoice',
         },
         {
+          label: t`Warranty Lookup`,
+          name: 'warranty-lookup',
+          route: '/warranty-lookup',
+        },
+        {
           label: t`Sales Payments`,
           name: 'payments',
           route: `/list/Payment/${t`Sales Payments`}`,

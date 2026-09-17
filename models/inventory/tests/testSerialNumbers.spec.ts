@@ -3,9 +3,11 @@ import {
   assertThrows,
 } from 'backend/database/tests/helpers';
 import { ModelNameEnum } from 'models/types';
+import { Invoice } from 'models/baseModels/Invoice/Invoice';
 import test from 'tape';
 import { closeTestFyo, getTestFyo, setupTestFyo } from 'tests/helpers';
 import { getSerialNumbers } from '../helpers';
+import { getWarrantyEndDate } from '../Shipment';
 import { MovementTypeEnum } from '../types';
 import { getItem, getStockMovement } from './helpers';
 
@@ -17,6 +19,7 @@ const itemMap = {
   Pen: {
     name: 'Pen',
     rate: 700,
+    warrantyPeriodMonths: 12,
   },
   Ink: {
     name: 'Ink',
@@ -50,8 +53,15 @@ const serialNumberMap = {
 
 test('create dummy items, locations, party & serialNumbers', async (t) => {
   // Create Items
-  for (const { name, rate } of Object.values(itemMap)) {
+  for (const itemData of Object.values(itemMap)) {
+    const { name, rate } = itemData;
     const item = getItem(name, rate, false, true);
+    Object.assign(item, {
+      warrantyPeriodMonths:
+        'warrantyPeriodMonths' in itemData
+          ? itemData.warrantyPeriodMonths
+          : undefined,
+    });
     await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
   }
 
@@ -85,6 +95,17 @@ test('create dummy items, locations, party & serialNumbers', async (t) => {
       `${serialNumber.name} exists and inital status Inactive`
     );
   }
+});
+
+test('warranty month calculation clamps to the last day of the month', (t) => {
+  t.equal(
+    getWarrantyEndDate(new Date('2023-01-31T12:00:00.000Z'), 1)
+      .toISOString()
+      .slice(0, 10),
+    '2023-02-28',
+    'January 31 plus one month ends on February 28'
+  );
+  t.end();
 });
 
 test('serial number parser accepts pasted scanner sequences', (t) => {
@@ -213,6 +234,58 @@ test('serialNumber enabled item, create stock movement, material receipt', async
   );
 
   t.equal(statusTwo, 'Active', 'serialNumber two is Active');
+});
+
+test('shipment saves serial warranty details and cancellation clears them', async (t) => {
+  const saleDate = new Date('2022-11-04T10:00:00.000Z');
+  const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice) as Invoice;
+  await sinv.set({
+    party: partyMap.partyOne.name,
+    date: saleDate,
+    account: 'Debtors',
+  });
+  await sinv.append('items', {
+    item: itemMap.Pen.name,
+    quantity: 1,
+    rate: itemMap.Pen.rate,
+  });
+  await (await sinv.sync()).submit();
+
+  const shipment = await sinv.getStockTransfer();
+  t.ok(shipment, 'shipment created from sales invoice');
+  if (!shipment) {
+    return;
+  }
+
+  await shipment.set('date', saleDate);
+  await shipment.items?.[0].setMultiple({
+    location: locationMap.LocationOne,
+    serialNumber: serialNumberMap.serialOne.name,
+  });
+  await (await shipment.sync()).submit();
+
+  const soldSerial = await fyo.doc.getDoc(
+    ModelNameEnum.SerialNumber,
+    serialNumberMap.serialOne.name
+  );
+  t.equal(soldSerial.salesInvoice, sinv.name, 'sales invoice is recorded');
+  t.equal(soldSerial.customer, partyMap.partyOne.name, 'customer is recorded');
+  t.equal(soldSerial.status, 'Delivered', 'sold serial is Delivered');
+  t.equal(
+    new Date(soldSerial.warrantyEndDate as Date).toISOString().slice(0, 10),
+    '2023-11-04',
+    'warranty ends after the configured 12 months'
+  );
+
+  await shipment.cancel();
+  const cancelledSerial = await fyo.doc.getDoc(
+    ModelNameEnum.SerialNumber,
+    serialNumberMap.serialOne.name,
+    { skipDocumentCache: true }
+  );
+  t.equal(cancelledSerial.status, 'Active', 'cancel restores Active status');
+  t.notOk(cancelledSerial.salesInvoice, 'cancel clears sales invoice');
+  t.notOk(cancelledSerial.warrantyEndDate, 'cancel clears warranty end date');
 });
 
 test('serialNumber enabled item, create stock movement, material issue', async (t) => {

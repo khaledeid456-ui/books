@@ -161,6 +161,14 @@
       "section": "Inventory"
     },
     {
+      "fieldname": "warrantyPeriodMonths",
+      "label": "Warranty Period (Months)",
+      "fieldtype": "Int",
+      "default": 0,
+      "minvalue": 0,
+      "section": "Inventory"
+    },
+    {
       "fieldname": "uomConversions",
       "label": "UOM Conversions",
       "fieldtype": "Table",
@@ -180,6 +188,7 @@
     "barcode",
     "hsnCode",
     "trackItem",
+    "warrantyPeriodMonths",
     "uom"
   ],
   "keywordFields": ["name", "itemType", "for"]

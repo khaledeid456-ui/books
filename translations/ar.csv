@@ -1325,3 +1325,8 @@
 "Serial Number ${0} does not belong to a serialized item.","السيريال ${0} لا يخص صنفًا مسلسلاً."
 "Unable to add this serial number.","تعذرت إضافة هذا السيريال."
 "No item or serial number found for ${0}.","لم يتم العثور على صنف أو سيريال مطابق لـ ${0}."
+Warranty Period (Months),مدة الضمان (بالشهور)
+Warranty Lookup,بحث الضمان
+Warranty Start Date,تاريخ بداية الضمان
+Warranty End Date,تاريخ نهاية الضمان
+Sale Date,تاريخ البيع

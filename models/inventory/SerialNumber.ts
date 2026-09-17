@@ -8,6 +8,11 @@ export class SerialNumber extends Doc {
   item?: string;
   description?: string;
   status?: SerialNumberStatus;
+  salesInvoice?: string;
+  customer?: string;
+  saleDate?: Date;
+  warrantyStartDate?: Date;
+  warrantyEndDate?: Date;
 
   static getListViewSettings(): ListViewSettings {
     return {

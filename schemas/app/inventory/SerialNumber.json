@@ -44,8 +44,48 @@
           "label": "Delivered"
         }
       ]
+    },
+    {
+      "fieldname": "salesInvoice",
+      "label": "Sales Invoice",
+      "fieldtype": "Link",
+      "target": "SalesInvoice",
+      "readOnly": true
+    },
+    {
+      "fieldname": "customer",
+      "label": "Customer",
+      "fieldtype": "Link",
+      "target": "Party",
+      "readOnly": true
+    },
+    {
+      "fieldname": "saleDate",
+      "label": "Sale Date",
+      "fieldtype": "Date",
+      "readOnly": true
+    },
+    {
+      "fieldname": "warrantyStartDate",
+      "label": "Warranty Start Date",
+      "fieldtype": "Date",
+      "readOnly": true
+    },
+    {
+      "fieldname": "warrantyEndDate",
+      "label": "Warranty End Date",
+      "fieldtype": "Date",
+      "readOnly": true
     }
   ],
-  "quickEditFields": ["item", "description"],
+  "quickEditFields": [
+    "item",
+    "description",
+    "salesInvoice",
+    "customer",
+    "saleDate",
+    "warrantyStartDate",
+    "warrantyEndDate"
+  ],
   "keywordFields": ["name"]
 }

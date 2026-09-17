@@ -1,0 +1,53 @@
+name: Windows baseline installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [custom]
+    paths: [.github/workflows/windows-baseline.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Check out the unmodified stable release
+        uses: actions/checkout@v4
+        with:
+          repository: frappe/books
+          ref: 2f028f42be70a1dbd45bd4c6483d57df2fc64805
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Yarn Classic
+        run: npm install --global yarn@1.22.22
+      - name: Install locked dependencies and rebuild native modules
+        run: yarn install --frozen-lockfile
+      - name: Build unsigned Windows x64 NSIS installer
+        run: yarn build --win nsis --x64 --nosign --publish never
+      - name: Preserve fallback and record checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force fallback | Out-Null
+          $installers = @(Get-ChildItem dist_electron/bundled -Filter *.exe)
+          if ($installers.Count -eq 0) { throw 'No Windows installer produced' }
+          $installers | Copy-Item -Destination fallback
+          Get-ChildItem fallback -Filter *.exe | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)  $($_.Length) bytes"
+          } | Set-Content fallback/SHA256SUMS.txt
+          git rev-parse HEAD | Set-Content fallback/UPSTREAM_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frappe-books-v0.36.0-windows-x64-fallback
+          path: fallback/
+          if-no-files-found: error
+          retention-days: 30

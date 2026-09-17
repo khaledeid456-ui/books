@@ -173,6 +173,7 @@ import {
 } from 'src/components/POS/types';
 import { ValidationError } from 'fyo/utils/errors';
 import { getSerialNumbers } from 'models/inventory/helpers';
+import { getCashierErrorMessage } from 'src/utils/cashierErrors';
 
 const COMPONENT_NAME = 'POS';
 
@@ -838,18 +839,22 @@ export default defineComponent({
       }
     },
     async selectedReturnInvoice(invoiceName: string) {
-      const salesInvoiceDoc = (await this.fyo.doc.getDoc(
-        ModelNameEnum.SalesInvoice,
-        invoiceName
-      )) as SalesInvoice;
-
-      let returnDoc = (await salesInvoiceDoc.getReturnDoc()) as SalesInvoice;
-
-      if (!returnDoc || !returnDoc.name) {
-        return;
+      try {
+        const salesInvoiceDoc = (await this.fyo.doc.getDoc(
+          ModelNameEnum.SalesInvoice,
+          invoiceName
+        )) as SalesInvoice;
+        const returnDoc = (await salesInvoiceDoc.getReturnDoc()) as SalesInvoice;
+        if (!returnDoc || !returnDoc.name) {
+          throw new Error('Return document was not created');
+        }
+        this.sinvDoc = returnDoc;
+      } catch (error) {
+        showToast({
+          type: 'error',
+          message: getCashierErrorMessage(error, 'return'),
+        });
       }
-
-      this.sinvDoc = returnDoc;
     },
     toggleView() {
       this.tableView = !this.tableView;
@@ -1164,10 +1169,19 @@ export default defineComponent({
     },
 
     async createTransaction(shouldPrint = false, isPay = false) {
+      if (!this.sinvDoc.items?.length) {
+        return showToast({
+          type: 'error',
+          message: getCashierErrorMessage(new Error('empty cart'), 'checkout'),
+        });
+      }
+
       try {
         this.sinvDoc.date = new Date();
         await this.validate();
-        await this.submitSinvDoc();
+        if (!(await this.submitSinvDoc())) {
+          return;
+        }
 
         const itemVisibility = await getItemVisibility(this.fyo);
 
@@ -1175,11 +1189,15 @@ export default defineComponent({
           this.sinvDoc.stockNotTransferred &&
           itemVisibility === 'Inventory Items'
         ) {
-          await this.makeStockTransfer();
+          if (!(await this.makeStockTransfer())) {
+            return;
+          }
         }
 
         if (isPay) {
-          await this.makePayment(shouldPrint);
+          if (!(await this.makePayment(shouldPrint))) {
+            return;
+          }
         }
 
         if (shouldPrint) {
@@ -1194,14 +1212,18 @@ export default defineComponent({
       } catch (error) {
         showToast({
           type: 'error',
-          message: t`${error as string}`,
+          message: getCashierErrorMessage(error, 'checkout'),
         });
       }
     },
-    async makePayment(shouldPrint: boolean) {
+    async makePayment(shouldPrint: boolean): Promise<boolean> {
       this.paymentDoc = this.sinvDoc.getPayment() as Payment;
       if (!this.paymentDoc) {
-        return null;
+        showToast({
+          type: 'error',
+          message: 'تعذر إنشاء سند الدفع. راجع طريقة الدفع وحاول مرة تانية.',
+        });
+        return false;
       }
 
       const paymentMethod = this.paymentMethod;
@@ -1245,17 +1267,23 @@ export default defineComponent({
             `/print/${this.sinvDoc.schemaName}/${this.sinvDoc.name}`
           );
         }
+        return true;
       } catch (error) {
-        return showToast({
+        showToast({
           type: 'error',
-          message: t`${error as string}`,
+          message: getCashierErrorMessage(error, 'checkout'),
         });
+        return false;
       }
     },
-    async makeStockTransfer() {
+    async makeStockTransfer(): Promise<boolean> {
       const shipmentDoc = (await this.sinvDoc.getStockTransfer()) as Shipment;
       if (!shipmentDoc.items) {
-        return;
+        showToast({
+          type: 'error',
+          message: 'تعذر إنشاء حركة المخزون لهذه الفاتورة.',
+        });
+        return false;
       }
 
       for (const item of shipmentDoc.items) {
@@ -1290,14 +1318,16 @@ export default defineComponent({
       try {
         await shipmentDoc.sync();
         await shipmentDoc.submit();
+        return true;
       } catch (error) {
-        return showToast({
+        showToast({
           type: 'error',
-          message: t`${error as string}`,
+          message: getCashierErrorMessage(error, 'checkout'),
         });
+        return false;
       }
     },
-    async submitSinvDoc() {
+    async submitSinvDoc(): Promise<boolean> {
       this.sinvDoc.once('afterSubmit', () => {
         showToast({
           type: 'success',
@@ -1311,11 +1341,13 @@ export default defineComponent({
         await this.sinvDoc.runFormulas();
         await this.sinvDoc.sync();
         await this.sinvDoc.submit();
+        return true;
       } catch (error) {
-        return showToast({
+        showToast({
           type: 'error',
-          message: t`${error as string}`,
+          message: getCashierErrorMessage(error, 'checkout'),
         });
+        return false;
       }
     },
     async afterSync() {

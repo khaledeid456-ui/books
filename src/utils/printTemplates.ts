@@ -15,6 +15,7 @@ import {
 import { Money } from 'pesa';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { Payment } from 'models/baseModels/Payment/Payment';
+import { getCashierErrorMessage } from './cashierErrors';
 
 export type PrintTemplateHint = {
   [key: string]: string | PrintTemplateHint | PrintTemplateHint[];
@@ -491,27 +492,41 @@ export async function getPathAndMakePDF(
   height: number,
   shouldPrint?: boolean
 ) {
-  if (!shouldPrint) {
-    const { filePath: savePath } = await getSavePath(name, 'pdf');
-    if (!savePath) {
-      return;
+  try {
+    if (!shouldPrint) {
+      const { filePath: savePath } = await getSavePath(name, 'pdf');
+      if (!savePath) {
+        return false;
+      }
+
+      const html = constructPrintDocument(innerHTML);
+      const success = await ipc.makePDF(html, savePath, width, height);
+      if (success) {
+        showExportInFolder(t`Save as PDF Successful`, savePath);
+      } else {
+        showToast({
+          message: 'تعذر حفظ ملف PDF. راجع مكان الحفظ وحاول مرة تانية.',
+          type: 'error',
+        });
+      }
+      return success;
     }
 
     const html = constructPrintDocument(innerHTML);
-    const success = await ipc.makePDF(html, savePath, width, height);
-    if (success) {
-      showExportInFolder(t`Save as PDF Successful`, savePath);
-    } else {
-      showToast({ message: t`Export Failed`, type: 'error' });
-    }
-  } else {
-    const html = constructPrintDocument(innerHTML);
     const success = await ipc.printDocument(html, width, height);
-    if (success) {
-      showToast({ message: t`Print Successful`, type: 'success' });
-    } else {
-      showToast({ message: t`Print Failed`, type: 'error' });
-    }
+    showToast({
+      message: success
+        ? t`Print Successful`
+        : 'الطابعة غير متصلة أو غير متاحة. راجع التوصيل وحاول مرة تانية.',
+      type: success ? 'success' : 'error',
+    });
+    return success;
+  } catch (error) {
+    showToast({
+      message: getCashierErrorMessage(error, shouldPrint ? 'print' : 'checkout'),
+      type: 'error',
+    });
+    return false;
   }
 }
 

@@ -118,6 +118,8 @@ import { ModelNameEnum } from 'models/types';
 import { Field } from 'schemas/types';
 import { Money } from 'pesa';
 import Paginator from 'src/components/Paginator.vue';
+import { showToast } from 'src/utils/interactive';
+import { getCashierErrorMessage } from 'src/utils/cashierErrors';
 
 export default defineComponent({
   name: 'ReturnSalesInvoice',
@@ -224,39 +226,47 @@ export default defineComponent({
       this.pageEnd = end;
     },
     async setReturnedInvoices() {
-      const allInvoices = await this.fyo.db.getAll(ModelNameEnum.SalesInvoice, {
-        fields: [],
-        filters: {
-          isPOS: true,
-          submitted: true,
-          cancelled: false,
-        },
-      });
+      try {
+        const allInvoices = await this.fyo.db.getAll(ModelNameEnum.SalesInvoice, {
+          fields: [],
+          filters: {
+            isPOS: true,
+            submitted: true,
+            cancelled: false,
+          },
+        });
 
-      const returnedInvoiceNames = allInvoices
-        .filter((inv) => {
-          if (inv.isFullyReturned || inv.returnAgainst) {
+        const returnedInvoiceNames = allInvoices
+          .filter((inv) => {
+            if (inv.isFullyReturned || inv.returnAgainst) {
+              return false;
+            }
+
+            if (inv.isReturned && !inv.isFullyReturned) {
+              return true;
+            }
+
+            if (!inv.isReturned && !inv.returnAgainst) {
+              return true;
+            }
+
+            if (!inv.isReturned && !(inv.outstandingAmount as Money).isZero()) {
+              return true;
+            }
+
             return false;
-          }
-
-          if (inv.isReturned && !inv.isFullyReturned) {
-            return true;
-          }
-
-          if (!inv.isReturned && !inv.returnAgainst) {
-            return true;
-          }
-
-          if (!inv.isReturned && !(inv.outstandingAmount as Money).isZero()) {
-            return true;
-          }
-
-          return false;
-        })
-        .map((inv) => inv.name);
-      this.returnedInvoices = allInvoices.filter((inv) =>
-        returnedInvoiceNames.includes(inv.name)
-      ) as SalesInvoice[];
+          })
+          .map((inv) => inv.name);
+        this.returnedInvoices = allInvoices.filter((inv) =>
+          returnedInvoiceNames.includes(inv.name)
+        ) as SalesInvoice[];
+      } catch (error) {
+        this.returnedInvoices = [];
+        showToast({
+          type: 'error',
+          message: getCashierErrorMessage(error, 'return'),
+        });
+      }
     },
   },
 });

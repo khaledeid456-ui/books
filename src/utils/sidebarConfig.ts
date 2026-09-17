@@ -75,6 +75,11 @@ function getInventorySidebar(): SidebarRoot[] {
           schemaName: 'StockMovement',
         },
         {
+          label: t`Item Labels`,
+          name: 'item-labels',
+          route: '/item-labels',
+        },
+        {
           label: t`Shipment`,
           name: 'shipment',
           route: '/list/Shipment',

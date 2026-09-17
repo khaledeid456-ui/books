@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - custom
-    paths:
-      - techflow-source.zip
-      - .github/workflows/windows-release.yml
+      - v1.1
 
 permissions:
   contents: read
@@ -26,32 +23,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Extract the reviewed Techflow source snapshot
-        shell: pwsh
-        run: |
-          if (!(Test-Path techflow-source.zip)) { throw 'techflow-source.zip is missing' }
-          Expand-Archive techflow-source.zip -DestinationPath build-source -Force
       - name: Install Yarn Classic
         run: npm install --global yarn@1.22.22
       - name: Install locked dependencies and rebuild native modules
-        working-directory: build-source
         run: yarn install --frozen-lockfile
       - name: Build unsigned Windows x64 NSIS installer
-        working-directory: build-source
         run: yarn build --win nsis --x64 --nosign --publish never
       - name: Collect installer and checksums
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-output | Out-Null
-          $installer = Get-ChildItem build-source/dist_electron/bundled -Filter 'Techflow-v1.0.0-windows-x64.exe' | Select-Object -First 1
+          $installer = Get-ChildItem dist_electron/bundled -Filter 'Techflow-v1.0.0-windows-x64.exe' | Select-Object -First 1
           if (!$installer) { throw 'Techflow installer was not produced' }
           Copy-Item $installer.FullName release-output/
+          New-Item -ItemType Directory -Force release-output/demo | Out-Null
+          Copy-Item demo/techflow-egypt-demo.sqlite release-output/demo/
+          Copy-Item demo/TEST_REPORT_AR.md release-output/demo/
+          Copy-Item demo/README_AR.md release-output/demo/
           $copied = Get-Item (Join-Path release-output $installer.Name)
           $hash = (Get-FileHash $copied.FullName -Algorithm SHA256).Hash
           "$hash  $($copied.Name)  $($copied.Length) bytes" | Set-Content release-output/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Techflow-v1.0.0-windows-x64
+          name: Techflow-v1.0.0-windows-x64-v1.1
           path: release-output/
           if-no-files-found: error
           retention-days: 30

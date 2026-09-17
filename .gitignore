@@ -31,3 +31,6 @@ log_creds.txt
 
 # Local fallback installers (preserved outside Git history)
 /fallback/*.exe
+
+# Local release installers (published as GitHub Actions artifacts)
+/release/*.exe

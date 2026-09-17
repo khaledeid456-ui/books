@@ -16,6 +16,7 @@
     "script:profile": "scripts/profile.sh",
     "demo:seed": "scripts/runner.sh scripts/seedDemo.ts",
     "demo:transactions": "scripts/runner.sh scripts/seedDemoTransactions.ts",
+    "demo:test": "scripts/runner.sh scripts/testDemo.ts",
     "test": "scripts/test.sh",
     "uitest": "node uitest/index.mjs | tap-spec",
     "lint": "eslint . --ext ts,vue",

@@ -19,6 +19,7 @@ import { Doc } from 'fyo/model/doc';
 
 export class SalesInvoice extends Invoice {
   items?: SalesInvoiceItem[];
+  dueDate?: Date;
 
   async getPosting() {
     const exchangeRate = this.exchangeRate ?? 1;

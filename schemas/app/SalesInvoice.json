@@ -25,6 +25,12 @@
       "section": "Default"
     },
     {
+      "fieldname": "dueDate",
+      "label": "Due Date",
+      "fieldtype": "Date",
+      "section": "Default"
+    },
+    {
       "fieldname": "coupons",
       "label": "Coupons",
       "fieldtype": "Table",

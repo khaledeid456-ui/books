@@ -87,6 +87,45 @@ test('create dummy items, locations, party & serialNumbers', async (t) => {
   }
 });
 
+test('serial number parser accepts pasted scanner sequences', (t) => {
+  t.deepEqual(
+    getSerialNumbers('IMEI-001, IMEI-002\nIMEI-003\tIMEI-004'),
+    ['IMEI-001', 'IMEI-002', 'IMEI-003', 'IMEI-004'],
+    'comma, line break, and tab separated serials are normalized'
+  );
+  t.end();
+});
+
+test('duplicate serial numbers are rejected before an incoming transaction is saved', async (t) => {
+  const stockMovement = await getStockMovement(
+    MovementTypeEnum.MaterialReceipt,
+    new Date('2022-11-03T09:56:04.528'),
+    [
+      {
+        item: itemMap.Pen.name,
+        to: locationMap.LocationOne,
+        quantity: 1,
+        serialNumber: 'PN-DUP-001',
+        rate: itemMap.Pen.rate,
+      },
+      {
+        item: itemMap.Pen.name,
+        to: locationMap.LocationOne,
+        quantity: 1,
+        serialNumber: 'PN-DUP-001',
+        rate: itemMap.Pen.rate,
+      },
+    ],
+    fyo
+  );
+
+  await assertThrows(
+    async () => stockMovement.sync(),
+    'duplicate serial numbers should fail before save'
+  );
+  t.pass('duplicate serial numbers were blocked');
+});
+
 test('serialNumber enabled item, create stock movement, material receipt', async (t) => {
   const { rate } = itemMap.Pen;
   const serialNumber =

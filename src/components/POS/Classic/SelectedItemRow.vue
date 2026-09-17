@@ -435,17 +435,18 @@ export default defineComponent({
       this.row.set('batch', batch);
       await this.getAvailableQtyInBatch();
     },
-    setSerialNumber(serialNumber: string) {
+    async setSerialNumber(serialNumber: string) {
       if (!serialNumber) {
         return;
       }
-      this.itemSerialNumbers[this.row.item as string] = serialNumber;
 
       validateSerialNumberCount(
         serialNumber,
         Math.abs(this.row.quantity ?? 0),
         this.row.item!
       );
+      await this.row.set('serialNumber', serialNumber);
+      this.itemSerialNumbers[this.row.item as string] = serialNumber;
     },
     isRateReadOnly() {
       const canChangeRate = this.profileRateSetting;
@@ -526,6 +527,7 @@ export default defineComponent({
     },
     async removeAddedItem(row: SalesInvoiceItem) {
       this.row.parentdoc?.remove('items', row?.idx as number);
+      delete this.itemSerialNumbers[row.item as string];
       this.row.runFormulas();
       if (!row.isFreeItem) {
         this.$emit('applyPricingRule');

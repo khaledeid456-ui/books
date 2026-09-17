@@ -1317,3 +1317,11 @@
 "no need ${0} points to purchase this item","لا تحتاج إلى ${0} نقطة لشراء هذا الصنف",
 "only","فقط",
 "to apply changes","لتطبيق التغييرات",
+"Duplicate Serial Number ${0} in this transaction.","السيريال ${0} مكرر في نفس الحركة."
+"Serial Number ${0} has already been sold.","السيريال ${0} تم بيعه بالفعل."
+"Serial Number ${0} is not in stock.","السيريال ${0} غير موجود بالمخزون."
+"Serial Number ${0} is available in another warehouse.","السيريال ${0} موجود في مخزن آخر."
+"Serial Number ${0} is already added to the cart.","السيريال ${0} مضاف بالفعل إلى سلة البيع."
+"Serial Number ${0} does not belong to a serialized item.","السيريال ${0} لا يخص صنفًا مسلسلاً."
+"Unable to add this serial number.","تعذرت إضافة هذا السيريال."
+"No item or serial number found for ${0}.","لم يتم العثور على صنف أو سيريال مطابق لـ ${0}."

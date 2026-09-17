@@ -12,6 +12,8 @@ import { fyo } from 'src/initFyo';
 import { safeParseFloat } from 'utils/index';
 import { showToast } from './interactive';
 import { POSClosingShift } from 'models/inventory/Point of Sale/POSClosingShift';
+import { SerialNumber } from 'models/inventory/SerialNumber';
+import { getSerialNumbers } from 'models/inventory/helpers';
 
 export async function getPOSOpeningShiftDoc(
   fyo: Fyo
@@ -131,26 +133,95 @@ async function validateSinvItems(
   }
 }
 
-export async function validateShipment(itemSerialNumbers: ItemSerialNumbers) {
+export async function validatePOSSerialNumber(
+  serialNumber: string,
+  location?: string,
+  expectedItem?: string
+): Promise<SerialNumber> {
+  if (!(await fyo.db.exists(ModelNameEnum.SerialNumber, serialNumber))) {
+    throw new ValidationError(t`Serial Number ${serialNumber} does not exist.`);
+  }
+
+  const serialDoc = (await fyo.doc.getDoc(
+    ModelNameEnum.SerialNumber,
+    serialNumber
+  )) as SerialNumber;
+
+  if (!serialDoc?.name || !serialDoc.item) {
+    throw new ValidationError(t`Serial Number ${serialNumber} does not exist.`);
+  }
+
+  if (expectedItem && serialDoc.item !== expectedItem) {
+    throw new ValidationError(
+      t`Serial Number ${serialNumber} does not belong to the item ${expectedItem}.`
+    );
+  }
+
+  if (serialDoc.status === 'Delivered') {
+    throw new ValidationError(
+      t`Serial Number ${serialNumber} has already been sold.`
+    );
+  }
+
+  if (serialDoc.status !== 'Active') {
+    throw new ValidationError(
+      t`Serial Number ${serialNumber} is not in stock.`
+    );
+  }
+
+  const locationQuantity =
+    (await fyo.db.getStockQuantity(
+      serialDoc.item,
+      location,
+      undefined,
+      undefined,
+      undefined,
+      [serialNumber]
+    )) ?? 0;
+
+  if (locationQuantity > 0) {
+    return serialDoc;
+  }
+
+  const totalQuantity =
+    (await fyo.db.getStockQuantity(
+      serialDoc.item,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      [serialNumber]
+    )) ?? 0;
+
+  if (totalQuantity > 0 && location) {
+    throw new ValidationError(
+      t`Serial Number ${serialNumber} is available in another warehouse.`
+    );
+  }
+
+  throw new ValidationError(t`Serial Number ${serialNumber} is not in stock.`);
+}
+
+export async function validateShipment(
+  itemSerialNumbers: ItemSerialNumbers,
+  location?: string
+) {
   if (!itemSerialNumbers) {
     return;
   }
 
-  for (const idx in itemSerialNumbers) {
-    const serialNumbers = itemSerialNumbers[idx].split('\n');
+  const seenSerialNumbers = new Set<string>();
+  for (const item in itemSerialNumbers) {
+    const serialNumbers = getSerialNumbers(itemSerialNumbers[item]);
 
     for (const serialNumber of serialNumbers) {
-      const status = await fyo.getValue(
-        ModelNameEnum.SerialNumber,
-        serialNumber,
-        'status'
-      );
-
-      if (status !== 'Active') {
+      if (seenSerialNumbers.has(serialNumber)) {
         throw new ValidationError(
-          t`Serial Number ${serialNumber} status is not Active.`
+          t`Serial Number ${serialNumber} is already added to the cart.`
         );
       }
+      seenSerialNumbers.add(serialNumber);
+      await validatePOSSerialNumber(serialNumber, location, item);
     }
   }
 }
@@ -284,10 +355,17 @@ export function validateSerialNumberCount(
   quantity: number,
   item: string
 ) {
-  let serialNumberCount = 0;
+  const normalizedSerialNumbers = getSerialNumbers(serialNumbers ?? '');
+  const serialNumberCount = normalizedSerialNumbers.length;
+  const duplicateSerialNumber = normalizedSerialNumbers.find(
+    (serialNumber, index) =>
+      normalizedSerialNumbers.indexOf(serialNumber) !== index
+  );
 
-  if (serialNumbers) {
-    serialNumberCount = serialNumbers.split('\n').length;
+  if (duplicateSerialNumber) {
+    const errorMessage = t`Duplicate Serial Number ${duplicateSerialNumber} in this transaction.`;
+    showToast({ type: 'error', message: errorMessage, duration: 'long' });
+    throw new ValidationError(errorMessage);
   }
 
   if (Math.abs(quantity) !== serialNumberCount) {

@@ -62,7 +62,17 @@ export async function validateSerialNumber(doc: StockMovement | StockTransfer) {
     return;
   }
 
+  const seenSerialNumbers = new Set<string>();
   for (const row of doc.items ?? []) {
+    for (const serialNumber of getSerialNumbers(row.serialNumber ?? '')) {
+      if (seenSerialNumbers.has(serialNumber)) {
+        throw new ValidationError(
+          t`Duplicate Serial Number ${serialNumber} in this transaction.`
+        );
+      }
+      seenSerialNumbers.add(serialNumber);
+    }
+
     await validateItemRowSerialNumber(row);
   }
 }
@@ -189,7 +199,7 @@ export function getSerialNumbers(serialNumber: string): string[] {
   }
 
   return serialNumber
-    .split('\n')
+    .split(/[\n,\t]+/)
     .map((s) => s.trim())
     .filter(Boolean);
 }

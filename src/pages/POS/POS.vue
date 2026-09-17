@@ -156,6 +156,7 @@ import {
   getTotalQuantity,
   getTotalTaxedAmount,
   validateIsPosSettingsSet,
+  validatePOSSerialNumber,
 } from 'src/utils/pos';
 import {
   validateQty,
@@ -171,6 +172,7 @@ import {
   ItemSerialNumbers,
 } from 'src/components/POS/types';
 import { ValidationError } from 'fyo/utils/errors';
+import { getSerialNumbers } from 'models/inventory/helpers';
 
 const COMPONENT_NAME = 'POS';
 
@@ -513,6 +515,54 @@ export default defineComponent({
       this.itemSearchTerm = searchTerm;
       if (!addItem) return;
 
+      const normalizedSearchTerm = searchTerm.trim();
+      if (!normalizedSearchTerm) {
+        return;
+      }
+
+      try {
+        const isSerialNumber = await this.fyo.db.exists(
+          ModelNameEnum.SerialNumber,
+          normalizedSearchTerm
+        );
+
+        if (isSerialNumber) {
+          const location =
+            this.posProfile?.inventory ??
+            this.fyo.singles.POSSettings?.inventory;
+          const serialDoc = await validatePOSSerialNumber(
+            normalizedSearchTerm,
+            location as string | undefined
+          );
+
+          const selectedSerialNumbers = Object.values(
+            this.itemSerialNumbers
+          ).flatMap((value) => getSerialNumbers(value));
+          if (selectedSerialNumbers.includes(normalizedSearchTerm)) {
+            throw new ValidationError(
+              t`Serial Number ${normalizedSearchTerm} is already added to the cart.`
+            );
+          }
+
+          await this.addScannedSerial(
+            serialDoc.item as string,
+            normalizedSearchTerm
+          );
+          this.itemSearchTerm = '';
+          return;
+        }
+      } catch (error) {
+        showToast({
+          type: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : t`Unable to add this serial number.`,
+          duration: 'long',
+        });
+        return;
+      }
+
       let quantity = 1;
       const posSettings = fyo.singles.POSSettings;
       const isWeightEnabledBarcode = posSettings?.weightEnabledBarcode;
@@ -527,18 +577,18 @@ export default defineComponent({
         Number(weightDigits);
 
       let isWeightBarcode = false;
-      let itemCode = searchTerm;
+      let itemCode = normalizedSearchTerm;
       let weightPart = '';
 
       if (
         isWeightEnabledBarcode &&
-        searchTerm.length === expectedWeightBarcodeLength
+        normalizedSearchTerm.length === expectedWeightBarcodeLength
       ) {
-        const extractedItemCode = searchTerm.slice(
+        const extractedItemCode = normalizedSearchTerm.slice(
           checkDigits.toString().length,
           checkDigits.toString().length + itemCodeDigits
         );
-        const weightData = searchTerm.slice(
+        const weightData = normalizedSearchTerm.slice(
           checkDigits.toString().length + itemCodeDigits
         );
 
@@ -559,15 +609,26 @@ export default defineComponent({
         matchedItem = allItems.find(
           (item) => item.itemCode === itemCode || item.barcode === itemCode
         );
-      } else if (searchTerm.length === 12) {
-        matchedItem = allItems.find((item) => item.barcode === searchTerm);
+      } else if (normalizedSearchTerm.length === 12) {
+        matchedItem = allItems.find(
+          (item) => item.barcode === normalizedSearchTerm
+        );
       }
 
       if (!matchedItem) {
-        matchedItem = allItems.find((item) => item.name === searchTerm);
+        matchedItem = allItems.find(
+          (item) => item.name === normalizedSearchTerm
+        );
       }
 
-      if (!matchedItem) return;
+      if (!matchedItem) {
+        showToast({
+          type: 'error',
+          message: t`No item or serial number found for ${normalizedSearchTerm}.`,
+          duration: 'long',
+        });
+        return;
+      }
 
       if (isWeightBarcode && weightPart) {
         const weightValue = parseInt(weightPart, 10);
@@ -583,6 +644,52 @@ export default defineComponent({
         await this.addItem(itemDoc as POSItem, quantity);
         this.itemSearchTerm = '';
       }
+    },
+
+    async addScannedSerial(itemName: string, serialNumber: string) {
+      const itemDoc = (await this.fyo.doc.getDoc(
+        ModelNameEnum.Item,
+        itemName
+      )) as Item;
+      if (!itemDoc.hasSerialNumber) {
+        throw new ValidationError(
+          t`Serial Number ${serialNumber} does not belong to a serialized item.`
+        );
+      }
+
+      const posItem =
+        this.getItem(itemName) ??
+        ({
+          name: itemName,
+          image: itemDoc.image as string,
+          rate: itemDoc.rate as Money,
+          unit: itemDoc.unit as string,
+          hasBatch: !!itemDoc.hasBatch,
+          hasSerialNumber: true,
+          availableQty: this.itemQtyMap[itemName]?.availableQty ?? 0,
+        } as POSItem);
+
+      const existingRow = this.sinvDoc.items?.find(
+        (row) => row.item === itemName && !row.isFreeItem
+      ) as SalesInvoiceItem | undefined;
+      const previousQuantity = existingRow?.quantity ?? 0;
+
+      await this.addItem(posItem, 1);
+
+      const row = this.sinvDoc.items?.find(
+        (item) => item.item === itemName && !item.isFreeItem
+      ) as SalesInvoiceItem | undefined;
+      if (!row || (row.quantity ?? 0) <= previousQuantity) {
+        return;
+      }
+
+      const serialNumbers = [
+        ...getSerialNumbers(row.serialNumber ?? ''),
+        serialNumber,
+      ];
+      const serialNumberValue = serialNumbers.join('\n');
+      await row.set('serialNumber', serialNumberValue);
+      this.itemSerialNumbers[itemName] = serialNumberValue;
     },
 
     getItem(name: string) {
@@ -1251,7 +1358,12 @@ export default defineComponent({
       await validateSinv(this.sinvDoc as SalesInvoice, this.itemQtyMap);
 
       if (!this.sinvDoc.isReturn) {
-        await validateShipment(this.itemSerialNumbers);
+        const location =
+          this.posProfile?.inventory ?? this.fyo.singles.POSSettings?.inventory;
+        await validateShipment(
+          this.itemSerialNumbers,
+          location as string | undefined
+        );
       }
     },
     async applyPricingRule() {

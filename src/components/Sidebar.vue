@@ -178,6 +178,14 @@
         </p>
       </button>
 
+      <button
+        class="flex text-sm text-gray-600 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-400 gap-1 items-center"
+        @click="viewAbout = true"
+      >
+        <feather-icon name="info" class="h-4 w-4 flex-shrink-0" />
+        <p>{{ t`About Techflow` }}</p>
+      </button>
+
       <p
         v-if="showDevMode"
         class="text-xs text-gray-500 select-none cursor-pointer"
@@ -211,6 +219,22 @@
     <Modal :open-modal="viewShortcuts" @closemodal="viewShortcuts = false">
       <ShortcutsHelper class="w-form" />
     </Modal>
+    <Modal :open-modal="viewAbout" @closemodal="viewAbout = false">
+      <div class="w-form p-6 text-center dark:text-gray-100">
+        <img
+          :src="techflowLogo"
+          alt="Techflow"
+          class="w-20 h-20 mx-auto mb-3 object-contain"
+        />
+        <h2 class="text-xl font-semibold">Techflow</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {{ t`Version ${appVersion}` }}
+        </p>
+        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          Based on Frappe Books (AGPL-3.0)
+        </p>
+      </div>
+    </Modal>
   </div>
 </template>
 <script lang="ts">
@@ -228,6 +252,7 @@ import Modal from './Modal.vue';
 import ShortcutsHelper from './ShortcutsHelper.vue';
 
 const COMPONENT_NAME = 'Sidebar';
+const techflowLogo = new URL('../assets/techflow-logo.png', import.meta.url).href;
 
 export default defineComponent({
   components: {
@@ -243,6 +268,7 @@ export default defineComponent({
     return {
       languageDirection: inject(languageDirectionKey),
       shortcuts: inject(shortcutsKey),
+      techflowLogo,
     };
   },
   data() {
@@ -250,12 +276,14 @@ export default defineComponent({
       companyName: '',
       groups: [],
       viewShortcuts: false,
+      viewAbout: false,
       activeGroup: null,
       showDevMode: false,
     } as {
       companyName: string;
       groups: SidebarConfig;
       viewShortcuts: boolean;
+      viewAbout: boolean;
       activeGroup: null | SidebarRoot;
       showDevMode: boolean;
     };

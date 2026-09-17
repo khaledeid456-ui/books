@@ -19,10 +19,15 @@
       "
       style="height: 700px"
     >
-      <!-- Welcome to Frappe Books -->
+      <!-- Welcome to Techflow -->
       <div class="px-4 py-4">
+        <img
+          :src="techflowLogo"
+          alt="Techflow"
+          class="w-14 h-14 mb-3 object-contain"
+        />
         <h1 class="text-2xl font-semibold select-none dark:text-gray-25">
-          {{ t`Welcome to Frappe Books` }}
+          {{ t`Welcome to Techflow` }}
         </h1>
         <p class="text-gray-600 dark:text-gray-400 text-base select-none">
           {{
@@ -126,7 +131,7 @@
             {{ t`Create Demo` }}
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ t`Create a demo company to try out Frappe Books` }}
+            {{ t`Create a demo company to try out Techflow` }}
           </p>
         </div>
       </div>
@@ -323,6 +328,9 @@ import { deleteDb, getSavePath, getSelectedFilePath } from 'src/utils/ui';
 import type { ConfigFilesWithModified } from 'utils/types';
 import { defineComponent } from 'vue';
 
+const techflowLogo = new URL('../assets/techflow-logo.png', import.meta.url)
+  .href;
+
 export default defineComponent({
   name: 'DatabaseSelector',
   components: {
@@ -335,6 +343,7 @@ export default defineComponent({
   emits: ['file-selected', 'new-database'],
   data() {
     return {
+      techflowLogo,
       openModal: false,
       baseCount: 100,
       creationMessage: '',
@@ -350,6 +359,7 @@ export default defineComponent({
       creatingDemo: boolean;
       loadingDatabase: boolean;
       files: ConfigFilesWithModified[];
+      techflowLogo: string;
     };
   },
   async mounted() {

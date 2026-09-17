@@ -1,7 +1,7 @@
 {
-  "name": "frappe-books",
+  "name": "techflow",
   "version": "0.36.0",
-  "description": "Simple book-keeping app for everyone",
+  "description": "Arabic-first point of sale and accounting desktop app",
   "author": {
     "name": "Frappe Technologies Pvt. Ltd.",
     "email": "hello@frappe.io"
